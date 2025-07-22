@@ -234,9 +234,12 @@ def submit_log():
 @app.route('/api/logs/device/<string:udid>', methods=['GET']) # Logs de dispositivo individual
 def get_specific_device_logs(udid):
     # Param opcional: ?days=7 (últimos X días)
+    # Param opcional: ?latest=true o ?amount=5 (ultimo/ultimos x registros)
 
     
     days = request.args.get('days', type=int)
+    latest = request.args.get('latest', type=str)
+    amount = request.args.get('amount', type=int)
     
     dispositivo = Devices.query.filter_by(udid=udid).first()
     if not dispositivo:
@@ -248,7 +251,12 @@ def get_specific_device_logs(udid):
         cutoff_date = datetime.utcnow() - timedelta(days=days)
         query = query.filter(Log.created_at >= cutoff_date)
 
-    logs = query.order_by(Log.created_at.desc()).all()
+    if latest and latest.lower() == 'true':
+        logs = query.order_by(Log.created_at.desc()).limit(1).all()
+    elif amount:
+        logs = query.order_by(Log.created_at.desc()).limit(amount).all()
+    else:
+        logs = query.order_by(Log.created_at.desc()).all()
 
     return jsonify([{
         'temp': log.temp,
@@ -260,9 +268,12 @@ def get_specific_device_logs(udid):
 @app.route('/api/logs/user-device/<string:email>/<string:udid>', methods=['GET']) # Logs de dispositivo individual (con verificacion de usuario)
 def get_user_device_logs(email, udid):
     # Param opcional: ?days=7 (últimos X días)
+    # Param opcional: ?latest=true o ?amount=5 (ultimo/ultimos x registros)
 
     
     days = request.args.get('days', type=int)
+    latest = request.args.get('latest', type=str)
+    amount = request.args.get('amount', type=int)
     
     usuario = Usuario.query.filter_by(email=email).first()
     if not usuario:
@@ -281,8 +292,13 @@ def get_user_device_logs(email, udid):
     if days:
         cutoff_date = datetime.utcnow() - timedelta(days=days)
         query = query.filter(Log.created_at >= cutoff_date)
-
-    logs = query.order_by(Log.created_at.desc()).all()
+    
+    if latest and latest.lower() == 'true':
+        logs = query.order_by(Log.created_at.desc()).limit(1).all()
+    elif amount:
+        logs = query.order_by(Log.created_at.desc()).limit(amount).all()
+    else:
+        logs = query.order_by(Log.created_at.desc()).all()
 
     return jsonify([{
         'temp': log.temp,

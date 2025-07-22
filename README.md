@@ -79,11 +79,30 @@ Envía datos de sensores desde el dispositivo IoT.
 
 ### 5. Consulta de Logs
 
-- **Por dispositivo:**  
-  `GET /api/logs/device/{udid}?days=7` (days opcional)
+#### Por dispositivo  
+`GET /api/logs/device/{udid}`
 
-- **Con verificación de usuario:**  
-  `GET /api/logs/user-device/{email}/{udid}?days=7` (days opcional)
+**Parámetros opcionales:**
+- `days` (int): Filtra los logs de los últimos X días.
+- `latest` (bool): Si es `true`, devuelve solo el registro más reciente.
+- `amount` (int): Devuelve los últimos X registros.
+
+**Ejemplo:**  
+`GET /api/logs/device/ESP32-123?days=7&amount=10`  
+`GET /api/logs/device/ESP32-123?latest=true`
+
+#### Con verificación de usuario  
+`GET /api/logs/user-device/{email}/{udid}`
+
+**Parámetros opcionales:**
+- `days` (int): Filtra los logs de los últimos X días.
+- `latest` (bool): Si es `true`, devuelve solo el registro más reciente.
+- `amount` (int): Devuelve los últimos X registros.
+
+**Ejemplo:**  
+`GET /api/logs/user-device/usuario@ejemplo.com/ESP32-123?days=7`  
+`GET /api/logs/user-device/usuario@ejemplo.com/ESP32-123?latest=true`  
+`GET /api/logs/user-device/usuario@ejemplo.com/ESP32-123?amount=3`
 
 ---
 
