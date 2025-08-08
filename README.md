@@ -8,7 +8,7 @@ API REST para sistema de monitoreo de plantas con ESP32. Maneja dispositivos IoT
 
 ## 🔓 Autenticación
 
-No requerida
+Por implementar
 
 ---
 
@@ -16,7 +16,7 @@ No requerida
 
 ### 1. Registro de Dispositivos
 
-`POST /api/iot/register`  
+`POST /iot/register`
 Registra un nuevo dispositivo IoT o actualiza su asociación.
 
 **Request:**
@@ -40,29 +40,39 @@ Registra un nuevo dispositivo IoT o actualiza su asociación.
 
 ### 2. Compartir Dispositivo
 
-`POST /api/iot/share`  
+`POST /iot/share`  
 Comparte un dispositivo existente con otro usuario.
 
 **Request:**
 ```json
 {
   "udid": "string (requerido)",
-  "email": "string (requerido)"
+  "email_personal": "string (requerido - email del dueño)",
+  "email": "string (requerido - email del nuevo usuario)"
 }
 ```
-
+**Response (200 OK):**
+```json
+{
+  "message": "Dispositivo compartido exitosamente"
+}
+```
 ---
 
 ### 3. Obtener Dispositivos de Usuario
 
-`GET /api/iot/{email}`  
+`GET /iot/{email}`  
 Lista todos los dispositivos asociados a un usuario.
 
+***Response (200 OK):***
+```json
+["ESP32-123", "ESP32-456"]
+```
 ---
 
 ### 4. Envío de Datos de Sensores
 
-`POST /api/logs/submit`  
+`POST /logs/submit`  
 Envía datos de sensores desde el dispositivo IoT.
 
 **Request:**
@@ -71,44 +81,67 @@ Envía datos de sensores desde el dispositivo IoT.
   "udid": "string (requerido)",
   "temp": "float (requerido)",
   "moisture_dirt": "float (requerido)",
-  "moisture_air": "float (requerido)"
+  "moisture_air": "float (requerido)",
+  "raw_soil": "float (opcional)",
+  "soil_type": "integer (opcional)"
 }
 ```
-
+**Response (201 Created):**
+```json
+{
+  "message": "Datos guardados"
+}
+```
 ---
 
 ### 5. Consulta de Logs
 
 #### Por dispositivo  
-`GET /api/logs/device/{udid}`
+`GET /logs/{udid}`
 
-**Parámetros opcionales:**
-- `days` (int): Filtra los logs de los últimos X días.
-- `latest` (bool): Si es `true`, devuelve solo el registro más reciente.
-- `amount` (int): Devuelve los últimos X registros.
+Parámetros opcionales:
+
+  page (int): Número de página (default: 1)
+
+  page_size (int): Elementos por página (default: 10)
+
+  all (bool): Si es true, devuelve todos los registros (ignora paginación)
+
+  since (string): Filtra registros desde esta fecha (formato: YYYY-MM-DDTHH:MM:SS)
+
+  latest (bool): Si es true, devuelve solo el registro más reciente
 
 **Ejemplo:**  
-`GET /api/logs/device/ESP32-123?days=7&amount=10`  
-`GET /api/logs/device/ESP32-123?latest=true`
+`GET /logs/ESP32-123?page=2&page_size=5`
+`GET /logs/ESP32-123?latest=true`
+`GET /logs/ESP32-123?since=2023-01-01T00:00:00`
 
 #### Con verificación de usuario  
-`GET /api/logs/user-device/{email}/{udid}`
+Mismos parámetros que la versión sin verificación de usuario.
+`GET /logs/{email}/{udid}`
 
-**Parámetros opcionales:**
-- `days` (int): Filtra los logs de los últimos X días.
-- `latest` (bool): Si es `true`, devuelve solo el registro más reciente.
-- `amount` (int): Devuelve los últimos X registros.
+**Response (200 OK):**
+```json
+[{
+  "temp": 25.5,
+  "moisture_dirt": 40.0,
+  "moisture_air": 60.0,
+  "raw_soil": 2034.0,
+  "soil_type": 1,
+  "timestamp": "2023-01-01T12:00:00"
+}]
+```
 
 **Ejemplo:**  
-`GET /api/logs/user-device/usuario@ejemplo.com/ESP32-123?days=7`  
-`GET /api/logs/user-device/usuario@ejemplo.com/ESP32-123?latest=true`  
-`GET /api/logs/user-device/usuario@ejemplo.com/ESP32-123?amount=3`
+`GET /logs/usuario@ejemplo.com/ESP32-123?page=2&page_size=5`  
+`GET /logs/usuario@ejemplo.com/ESP32-123?latest=true`  
+`GET /logs/usuario@ejemplo.com/ESP32-123?since=2023-01-01T00:00:00`
 
 ---
 
 ### 6. Desarrollo (Solo local)
 
-`GET /api/devices/debug-list`  
+`GET /iot/debug-list`  
 Lista completa de dispositivos y sus relaciones.
 
 ---
@@ -139,6 +172,8 @@ Lista completa de dispositivos y sus relaciones.
   "temp": "float",
   "moisture_dirt": "float",
   "moisture_air": "float",
+  "raw_soil": "float",
+  "soil_type": "integer",
   "timestamp": "datetime"
 }
 ```
@@ -149,21 +184,21 @@ Lista completa de dispositivos y sus relaciones.
 
 **Registrar dispositivo:**
 ```sh
-curl -X POST http://localhost:5000/api/iot/register \
+curl -X POST http://localhost:5000/iot/register \
   -H "Content-Type: application/json" \
   -d '{"udid":"ESP32-123", "email":"usuario@ejemplo.com"}'
 ```
 
-**Obtener logs (7 días):**
+**Obtener logs (paginados):**
 ```sh
-curl "http://localhost:5000/api/logs/user-device/usuario@ejemplo/ESP-123?days=7"
+curl "http://localhost:5000/logs/usuario@ejemplo.com/ESP32-123?page=1&page_size=5"
 ```
 
 **Enviar datos de sensores:**
 ```sh
-curl -X POST http://localhost:5000/api/logs/submit \
+curl -X POST http://localhost:5000/logs/submit \
   -H "Content-Type: application/json" \
-  -d '{"udid":"ESP32-123", "temp":25.5, "moisture_dirt":40, "moisture_air":60}'
+  -d '{"udid":"ESP32-123", "temp":25.5, "moisture_dirt":40, "moisture_air":60, "raw_soil":2034, "soil_type":1}'
 ```
 
 ---
@@ -178,3 +213,26 @@ curl -X POST http://localhost:5000/api/logs/submit \
 | 403    | Forbidden - Sin permisos     |
 | 404    | Not Found - Recurso no existe|
 | 500    | Error interno del servidor   |
+
+**Cambios Recientes**
+- Actualizadas todas las rutas a nuevo formato (/iot/ y /logs/)
+- Añadidos campos raw_soil y soil_type a los logs
+- Modificado el endpoint de debug legacy para no mostrar emails
+- Implementado sistema de paginación en consultas de logs
+- Añadida verificación de propiedad en compartir dispositivos
+
+**Rutas antiguas aun presentes**
+```json
+{
+  "GET": [
+    "/api/devices/debug-list",
+    "/api/iot/<string:email>",
+    "/api/logs/device/<string:udid>",
+    "/api/logs/user-device/<string:email>/<string:udid>"
+  ],
+  "POST": [
+    "/api/iot/register",
+    "/api/iot/share"
+  ]
+}
+```
