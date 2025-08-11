@@ -360,20 +360,21 @@ def get_user_device_logs(email, udid):
 @app.route('/api/devices/debug-list', methods=['GET']) # Lista de todos los dispositivos y sus relaciones
 def old_debug_device_list():
     try:
-        # devices": [ { "udid": "ESP32-123", "logs_count": 42, "registered_users_count": 3 } ]
+        # Obtener dispositivos con información asociada
         devices = db.session.query(
             Devices.udid,
-            func.count(Log.id).label('total_logs'),
-            func.count(Sync.user_id).label('user_count')  # Count of registered users
-        ).outerjoin(Log, Log.device_id == Devices.id
+            Usuario.email,
+            func.count(Log.id).label('total_logs')
         ).outerjoin(Sync, Sync.device_id == Devices.id
-        ).group_by(Devices.udid).all()
+        ).outerjoin(Usuario, Usuario.id == Sync.user_id
+        ).outerjoin(Log, Log.device_id == Devices.id
+        ).group_by(Devices.udid, Usuario.email).all()
 
-        # Format response
+        # Formatear respuesta
         response = [{
             'udid': device.udid,
-            'logs_count': device.total_logs,
-            'registered_users_count': device.user_count
+            'registered_to': device.email,
+            'logs_count': device.total_logs
         } for device in devices]
 
         return jsonify({'devices': response})
@@ -445,16 +446,6 @@ def old_share_device():
 
 @app.route('/api/iot/<string:email>', methods=['GET']) #Obtener todos los dispositivos asociados a un usuario
 def old_get_user_devices(email):
-    usuario = Usuario.query.filter_by(email=email).first()
-    if not usuario:
-        return jsonify({'error': 'Email no registrado'}), 404
-
-    dispositivos = db.session.query(Devices.udid).join(Sync).filter(
-        Sync.user_id == usuario.id
-    ).all()
-
-    return jsonify([d.udid for d in dispositivos])
-
     usuario = Usuario.query.filter_by(email=email).first()
     if not usuario:
         return jsonify({'error': 'Email no registrado'}), 404
