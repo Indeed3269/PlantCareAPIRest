@@ -237,7 +237,7 @@ def submit_log():
 
     try:
         data = request.get_json()
-        required = ['udid', 'temp', 'moisture_dirt', 'moisture_air', 'raw_soil', 'soil_type']
+        required = ['udid', 'temp', 'moisture_dirt', 'moisture_air', 'raw_soil','raw_calMin','raw_calMax', 'soil_type']
         if not all(field in data for field in required):
             return jsonify({'error': 'Campos requeridos faltantes'}), 400
 
@@ -251,6 +251,8 @@ def submit_log():
             moisture_dirt=float(data['moisture_dirt']),
             moisture_air=float(data['moisture_air']),
             raw_soil=float(data['raw_soil']),
+            raw_calMin=float(data['raw_calMin']),
+            raw_calMax=float(data['raw_calMax']),
             soil_type=int(data['soil_type'])
         )
         db.session.add(nuevo_log)
