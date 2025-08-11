@@ -86,6 +86,8 @@ class Log(db.Model):
     moisture_dirt = db.Column(db.Float, nullable=False)
     moisture_air = db.Column(db.Float, nullable=False)
     raw_soil = db.Column(db.Float, nullable=True)
+    raw_calMin = db.Column(db.Float, nullable=True)
+    raw_calMax = db.Column(db.Float, nullable=True)
     soil_type = db.Column(db.Integer, nullable=True)
     created_at = db.Column(db.DateTime, default=get_pacific_time, index=True)
     
