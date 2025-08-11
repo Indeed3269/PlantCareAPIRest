@@ -10,6 +10,14 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
+# Por implementar:
+# - tokens
+# - roles
+# - acceso desarrollo/produccion
+# - integracion de analisis de datos
+# - ruta de ejecucion de analisis
+# - separacion a modulos
+# - actualizacion de readme
 
 app = Flask(__name__)
 CORS(app)
@@ -109,7 +117,21 @@ def enforce_https():
     if request.headers.get('X-Forwarded-Proto') == 'http':
         return redirect(request.url.replace('http://', 'https://', 1), 301)
     
-
+# ==============================================
+# Funciones
+# ==============================================
+def _jsonifiedlog(logs):
+    return jsonify([{
+        'temp': log.temp,
+        'moisture_dirt': log.moisture_dirt,
+        'moisture_air': log.moisture_air,
+        'raw_soil': log.raw_soil,
+        'raw_calMin': log.raw_calMin,
+        'raw_calMax': log.raw_calMax,
+        'soil_type': log.soil_type,
+        'timestamp': log.created_at.isoformat()
+    } for log in logs])
+    
 # ==============================================
 # Ruta de desarrollo 
 # ==============================================
@@ -285,23 +307,16 @@ def get_device_logs(udid):
             # Parseamos la fecha CON segundos (formato: YYYY-MM-DDTHH:MM:SS)
             since_datetime = datetime.strptime(since_str, '%Y-%m-%dT%H:%M:%S')
             # Filtramos registros >= al timestamp proporcionado (ignorando microsegundos en la comparación)
-            logs = Log.query.filter(Log.created_at >= since_datetime)
+            logs = Log.query.filter(Log.created_at >= since_datetime).order_by(Log.created_at.desc()).all()
         except ValueError:
             return jsonify({'error': 'Formato de fecha inválido. Usa YYYY-MM-DDTHH:MM:SS'}), 400
     elif latest and latest.lower() == 'true':
         logs = Log.query.filter_by(device_id=dispositivo.id).order_by(Log.created_at.desc()).limit(1).all()
     else:
-        logs = Log.query.filter_by(device_id=dispositivo.id).order_by(Log.created_at.desc()).paginate(page, page_size, False).items
+        logs = Log.query.filter_by(device_id=dispositivo.id).order_by(Log.created_at.desc()).paginate(page=page, per_page=page_size, error_out=False).items
     
 
-    return jsonify([{
-        'temp': log.temp,
-        'moisture_dirt': log.moisture_dirt,
-        'moisture_air': log.moisture_air,
-        'raw_soil': log.raw_soil,
-        'soil_type': log.soil_type,
-        'timestamp': log.created_at.isoformat()
-    } for log in logs])
+    return _jsonifiedlog(logs)
 
 @app.route('/logs/<string:email>/<string:udid>', methods=['GET']) # Logs de dispositivo individual (con verificacion de usuario)
 def get_user_device_logs(email, udid):
@@ -336,23 +351,16 @@ def get_user_device_logs(email, udid):
             # Parseamos la fecha CON segundos (formato: YYYY-MM-DDTHH:MM:SS)
             since_datetime = datetime.strptime(since_str, '%Y-%m-%dT%H:%M:%S')
             # Filtramos registros >= al timestamp proporcionado (ignorando microsegundos en la comparación)
-            logs = Log.query.filter(Log.created_at >= since_datetime)
+            logs = Log.query.filter(Log.created_at >= since_datetime).all()
         except ValueError:
             return jsonify({'error': 'Formato de fecha inválido. Usa YYYY-MM-DDTHH:MM:SS'}), 400
     elif latest and latest.lower() == 'true':
         logs = Log.query.filter_by(device_id=dispositivo.id).order_by(Log.created_at.desc()).limit(1).all()
     else:
-        logs = Log.query.filter_by(device_id=dispositivo.id).order_by(Log.created_at.desc()).paginate(page, page_size, False).items
+        logs = Log.query.filter_by(device_id=dispositivo.id).order_by(Log.created_at.desc()).paginate(page=page, per_page=page_size, error_out=False).items
     
 
-    return jsonify([{
-        'temp': log.temp,
-        'moisture_dirt': log.moisture_dirt,
-        'moisture_air': log.moisture_air,
-        'raw_soil': log.raw_soil,
-        'soil_type': log.soil_type,
-        'timestamp': log.created_at.isoformat()
-    } for log in logs])
+    return _jsonifiedlog(logs)
 
 # ==============================================
 # Rutas antiguas
